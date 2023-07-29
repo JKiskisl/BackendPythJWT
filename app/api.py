@@ -7,7 +7,7 @@ from app.auth.auth_handler import signJWT
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 from passlib.context import CryptContext
-from app.auth.auth_handler import decodeJWT
+from app.auth.auth_handler import decodeJWT, refreshJWT
 
 from fastapi.responses import JSONResponse
 from app.custom_json_encoder import CustomJSONEncoder
@@ -29,29 +29,54 @@ app = FastAPI()
 
 
 async def get_current_user(token: str = Depends(JWTBearer())):
-    payload = decodeJWT(token)
-    email = payload.get("user_id")
-    user_data = users_collection.find_one({"email": email})
-    if not user_data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-    return user_data
-
+    try:
+        payload = decodeJWT(token)
+        if payload is None:
+            refreshed_token = refreshJWT(token)
+            if refreshed_token:
+                payload = decodeJWT(refreshed_token["access_token"])
+                token = refreshed_token["access_token"]
+        
+        email = payload.get("user_id")
+        user_data = users_collection.find_one({"email": email})
+        if not user_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        return user_data
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired.")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token or token tampering detected.")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Unexpected error during token verification/refresh.")
 
 async def get_current_email(token: str = Depends(JWTBearer())):
-    payload = decodeJWT(token)
-    email = payload.get("user_id")
-    user_data = users_collection.find_one({"email": email})
-    if not user_data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-    print("User email:", email)
-    print (user_data)
-    return user_data["email"]
+    try:
+        payload = decodeJWT(token)
+        if payload is None:
+            refreshed_token = refreshJWT(token)
+            if refreshed_token:
+                payload = decodeJWT(refreshed_token["access_token"])
+                token = refreshed_token["access_token"]
+        
+        email = payload.get("user_id")
+        user_data = users_collection.find_one({"email": email})
+        if not user_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        print("User email:", email)
+        print(user_data)
+        return user_data["email"]
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired.")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token or token tampering detected.")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Unexpected error during token verification/refresh.")
 
 
 
