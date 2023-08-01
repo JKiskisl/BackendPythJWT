@@ -48,3 +48,19 @@ def decodeJWT(token: str) -> dict:
     except Exception as e:
         print("unexpected error during token decoding:", e)
         return None    
+    
+
+def expireJWT(token: str) -> Dict[str, str]:
+    try:
+        decoded_token = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        decoded_token["expires"] = time.time() - 1
+        return {"message": "Token expired successfully"}
+    except jwt.ExpiredSignatureError:
+        print("Token has already expired")
+        return {"message": "Token has already expired"}
+    except jwt.InvalidTokenError:
+        print("Invalid token")
+        return {"message": "Invalid token"}
+    except Exception as e:
+        print("Unexpected error during token expiration:", e)
+        return {"message": "Unexpected error during token expiration"}

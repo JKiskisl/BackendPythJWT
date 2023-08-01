@@ -1,5 +1,5 @@
 
-from fastapi import FastAPI, Body, Depends, HTTPException, status
+from fastapi import FastAPI, Body, Depends, HTTPException, status, Request
 
 from app.model import PostSchema, UserSchema, UserLoginSchema, UpdatePostSchema
 from app.auth.auth_bearer import JWTBearer
@@ -7,7 +7,9 @@ from app.auth.auth_handler import signJWT
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 from passlib.context import CryptContext
-from app.auth.auth_handler import decodeJWT, refreshJWT
+from app.auth.auth_handler import decodeJWT, refreshJWT, expireJWT
+import jwt
+from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi.responses import JSONResponse
 from app.custom_json_encoder import CustomJSONEncoder
@@ -27,6 +29,18 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 app = FastAPI()
 
+origins = [
+    "http://localhost",
+    "http://localhost:3000"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins = origins,
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
 
 async def get_current_user(token: str = Depends(JWTBearer())):
     try:
@@ -136,9 +150,8 @@ def check_user(data: UserLoginSchema):
 async def user_login(user: UserLoginSchema = Body(...)):
     if check_user(user):
         return signJWT(user.email)
-    return {
-        "error": "Wrong login details!"
-    }
+    else:
+        raise HTTPException(status_code=401, detail="Wrong login details!")
     
     
 
@@ -164,3 +177,17 @@ async def update_post(id: int, post: UpdatePostSchema, email: str = Depends(get_
     serialized_post = dumps(updated_post, cls=CustomJSONEncoder)
     
     return JSONResponse(content={"data": json.loads(serialized_post)})
+    
+    
+@app.post("/user/logout", tags=["user"])
+async def user_logout(token: str = Depends(JWTBearer())) -> dict:
+    try:
+        response = expireJWT(token)
+        return response
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired.")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token or token tampering detected.")
+    except Exception as e:
+        return("unexpected error", e)
+    
