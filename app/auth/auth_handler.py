@@ -30,6 +30,9 @@ def refreshJWT(token: str) -> Dict[str, str]:
     current_time = time.time()
     expires_at = decoded_token.get("expires", 0)
     
+    if expires_at < current_time:
+        raise Exception("Token has already expired")
+    
     if expires_at - current_time <= TOKEN_REFRESH_THRESHOLD:
         user_id = decoded_token.get("user_id", "")
         return signJWT(user_id)
