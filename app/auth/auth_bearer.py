@@ -1,6 +1,5 @@
 from fastapi import Request, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-
 from .auth_handler import decodeJWT, refreshJWT
 
 class JWTBearer(HTTPBearer):
@@ -26,21 +25,18 @@ class JWTBearer(HTTPBearer):
         
         return credentials.credentials
 
-    def verify_jwt(self, jwtoken: str) -> bool:
-        is_token_valid: bool = False
-
+    async def verify_jwt(self, jwtoken: str) -> bool:
         try:
-            payload = decodeJWT(jwtoken)
+            payload = await decodeJWT(jwtoken)
             if payload:
-                is_token_valid = True
+                return True
             else:
                 refreshed_token = refreshJWT(jwtoken)
                 if refreshed_token:
-                    is_token_valid = True
                     self.credentials.credentials = refreshed_token["access_token"]
                     print("Token refreshed successfully")
                     print(refreshed_token)
-        except:
-            pass
-
-        return is_token_valid
+                    return True
+        except Exception as e:
+            print(f"Error verifying token: {e}")
+        return False
