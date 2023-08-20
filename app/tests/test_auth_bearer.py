@@ -3,7 +3,7 @@
 import unittest
 from fastapi.testclient import TestClient
 from fastapi import Request, HTTPException
-from ..auth.auth_bearer import JWTBearer
+from app.auth.auth_bearer import JWTBearer
 
 
 

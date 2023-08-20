@@ -1,6 +1,6 @@
 import pytest
 from unittest import mock
-from ...main import main
+from main import main
 import uvicorn
 @pytest.mark.parametrize("host, port", [("0.0.0.0", 8081)])
 

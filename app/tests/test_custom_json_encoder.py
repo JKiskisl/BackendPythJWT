@@ -1,5 +1,5 @@
 import unittest
-from ..custom_json_encoder import CustomJSONEncoder
+from app.custom_json_encoder import CustomJSONEncoder
 from bson import ObjectId
 
 class TestCustomJSONEncoder(unittest.TestCase):
