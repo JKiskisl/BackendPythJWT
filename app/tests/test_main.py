@@ -1,13 +1,10 @@
 import pytest
-from unittest import mock
-from main import main
-import uvicorn
-@pytest.mark.parametrize("host, port", [("0.0.0.0", 8081)])
+from unittest.mock import patch
 
-def test_main(mocker, host, port):
-    mocker.patch("uvicorn.run")
-    
-    main()
-    
-    uvicorn.run.assert_called_once_with("app.api:app", host=host, port=port, reload=True)
-    
+import uvicorn
+
+def test_uvicorn_run_invocation():
+    with patch("uvicorn.run") as mock_run:
+        import main
+        
+        mock_run.assert_called_once_with("app.api:app", host="0.0.0.0", port="8081")
