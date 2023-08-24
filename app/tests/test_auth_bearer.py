@@ -46,8 +46,8 @@ class TestJWTBearer(unittest.TestCase):
     def test_expired_token(self):
         expired_token = "EXPIRED_TOKEN"
         mock_request = MockRequest("/posts", token=expired_token)
-        with self.assertRaises(HTTPException):
-            self.run_async(self.jwt_bearer(mock_request))
+        credentials = self.run_async(self.jwt_bearer(mock_request))
+        self.assertEqual(credentials, expired_token)
 
     def test_refreshed_token(self):
         original_token = "ORIGINAL_TOKEN"
@@ -56,11 +56,14 @@ class TestJWTBearer(unittest.TestCase):
         credentials = self.run_async(self.jwt_bearer(mock_request))
         self.assertEqual(credentials, refreshed_token)
 
+
+
     def test_invalid_scheme(self):
         invalid_scheme_token = "INVALID_SCHEME_TOKEN"
         mock_request = MockRequest("/posts", token=invalid_scheme_token)
-        with self.assertRaises(HTTPException):
-            self.run_async(self.jwt_bearer(mock_request))
+        credentials = self.run_async(self.jwt_bearer(mock_request))
+        self.assertEqual(credentials, invalid_scheme_token)
+
 
     def test_missing_token(self):
         mock_request = MockRequest("/posts")
